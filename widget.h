@@ -8,6 +8,8 @@
 #include "json.hpp"
 #include "Msg.h"
 #include "packageprocessor.h"
+#include <memory>
+#include <QStringListModel>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -26,7 +28,17 @@ public:
 private:
     Ui::Widget *ui;
 
+    int m_userId = 0;
+    std::unique_ptr<QStringListModel> model_ptr;
+
     void processReceivedData(QByteArray data);
     void on_loginButton_clicked();
+
+    //Business Logic
+    void sendMsg_userLogin();
+    void getMsg_userLogin(std::string data);
+
+    void sendMsg_getUserList();
+    void getMsg_getUserList(std::string data);
 };
 #endif // WIDGET_H
