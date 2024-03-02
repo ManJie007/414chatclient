@@ -118,9 +118,15 @@ void Widget::getMsg_getUserList(std::string data)
 
     json msg = json::parse(data);
     for (auto &user : msg["userlistinfo"]) {
+        int userid = user["userid"];
         std::string username = user["username"];
         model_ptr->insertRow(model_ptr->rowCount());
         QModelIndex index = model_ptr->index(model_ptr->rowCount() - 1, 0);
-        model_ptr->setData(index, QString::fromStdString(username), Qt::DisplayRole);
+
+        QString username_qstring = QString::fromStdString(username);
+        if(userid == m_userId) {
+            username_qstring += " (当前用户) ";
+        }
+        model_ptr->setData(index, username_qstring, Qt::DisplayRole);
     }
 }
