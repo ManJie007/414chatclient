@@ -10,6 +10,7 @@
 #include "packageprocessor.h"
 #include <memory>
 #include <QStringListModel>
+#include "chatwindow.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -31,6 +32,10 @@ private:
     int m_userId = 0;
     std::unique_ptr<QStringListModel> model_ptr;
 
+
+    std::unique_ptr<ChatWindow> chatWindow_ptr;
+    std::unique_ptr<QVBoxLayout> chatLayout_ptr;
+
     void processReceivedData(QByteArray data);
     void on_loginButton_clicked();
 
@@ -40,5 +45,8 @@ private:
 
     void sendMsg_getUserList();
     void getMsg_getUserList(std::string data);
+
+    void sendMsg_getMsgs();
+    void getMsg_getMsgs(std::string data);
 };
 #endif // WIDGET_H

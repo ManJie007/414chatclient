@@ -45,6 +45,8 @@ packageprocessor.h packageprocessor.cpp
 tcpclient.h tcpclient.cpp
 Singleton.h
 Msg.h
+messagebubble.h messagebubble.cpp
+chatwindow.h chatwindow.cpp
         )
     endif()
 endif()

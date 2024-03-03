@@ -15,8 +15,15 @@ Widget::Widget(QWidget *parent)
     //network
     Singleton<TcpClient>::Instance().connectToServer("172.16.229.128", 12345);
     connect(&Singleton<TcpClient>::Instance(), &TcpClient::dataReceived, this, &Widget::processReceivedData);
-
     connect(ui->pushButton_login, &QPushButton::clicked, this, &Widget::on_loginButton_clicked);
+
+    //chatWindow
+    chatWindow_ptr.reset(new ChatWindow(ui->widget_chat));
+    chatLayout_ptr.reset(new QVBoxLayout(ui->widget_chat));
+    // 设置边距为0
+    chatLayout_ptr->setContentsMargins(0, 0, 0, 0);
+    chatLayout_ptr->addWidget(chatWindow_ptr.get());
+    ui->widget_chat->setLayout(chatLayout_ptr.get());
 }
 
 Widget::~Widget()
@@ -63,11 +70,17 @@ void Widget::processReceivedData(QByteArray data)
         if(j["code"] == 0) {
             getMsg_userLogin(data_str);
             sendMsg_getUserList();
+            sendMsg_getMsgs();
         }
         break;
     case msg_type_getuserlist:
         if(j["code"] == 0) {
             getMsg_getUserList(data_str);
+        }
+        break;
+    case msg_type_getMsgs:
+        if(j["code"] == 0) {
+            getMsg_getMsgs(data_str);
         }
         break;
     default:
@@ -128,5 +141,36 @@ void Widget::getMsg_getUserList(std::string data)
             username_qstring += " (当前用户) ";
         }
         model_ptr->setData(index, username_qstring, Qt::DisplayRole);
+    }
+}
+
+void Widget::sendMsg_getMsgs()
+{
+    qDebug() << "Widget::sendMsg_getMsgs() send Msg to get Msgs";
+    std::string str;
+    std::string data = PackageProcessor::getSendPackageData(msg_type_getMsgs, 0, str);
+    qDebug() << "Widget::sendMsg_getMsgs() sendData : " << QString::fromStdString(data);
+    Singleton<TcpClient>::Instance().sendData(QByteArray(data.c_str(), data.length()));
+}
+
+void Widget::getMsg_getMsgs(std::string data)
+{
+    using json = nlohmann::json;
+
+    json msg = json::parse(data);
+    for (auto &oneMsg : msg["msgs"]) {
+        int sendid = oneMsg["senderid"];
+        std::string senderusername = oneMsg["senderusername"];
+        std::string msgcontent = oneMsg["msgcontent"];
+        std::string sendtime_str = oneMsg["sendtime_str"];
+
+        QString nameAtime = QString("%1 %2").arg(QString::fromStdString(senderusername)).arg(QString::fromStdString(sendtime_str));
+        QString msgcontent_qstr = QString::fromStdString(msgcontent);
+
+        if(sendid == m_userId) {
+            chatWindow_ptr->addMessage(msgcontent_qstr, nameAtime, true);
+        }else{
+            chatWindow_ptr->addMessage(msgcontent_qstr, nameAtime, false);
+        }
     }
 }
