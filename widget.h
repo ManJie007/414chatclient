@@ -11,6 +11,7 @@
 #include <memory>
 #include <QStringListModel>
 #include "chatwindow.h"
+#include <QDateTime>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -30,6 +31,7 @@ private:
     Ui::Widget *ui;
 
     int m_userId = 0;
+    std::string m_username;
     std::unique_ptr<QStringListModel> model_ptr;
 
 
@@ -37,7 +39,12 @@ private:
     std::unique_ptr<QVBoxLayout> chatLayout_ptr;
 
     void processReceivedData(QByteArray data);
+
+    //发送登陆请求
     void on_loginButton_clicked();
+
+    //处理用户发送的数据
+    void on_plainTextEdit_ReturnPressed();
 
     //Business Logic
     void sendMsg_userLogin();
@@ -48,5 +55,7 @@ private:
 
     void sendMsg_getMsgs();
     void getMsg_getMsgs(std::string data);
+
+    void getMsg_getChatMsg(std::string data);
 };
 #endif // WIDGET_H

@@ -24,6 +24,9 @@ Widget::Widget(QWidget *parent)
     chatLayout_ptr->setContentsMargins(0, 0, 0, 0);
     chatLayout_ptr->addWidget(chatWindow_ptr.get());
     ui->widget_chat->setLayout(chatLayout_ptr.get());
+
+    //处理用户发送信息
+    connect(ui->plainTextEdit, &QPlainTextEdit::textChanged, this, &Widget::on_plainTextEdit_ReturnPressed);
 }
 
 Widget::~Widget()
@@ -83,6 +86,11 @@ void Widget::processReceivedData(QByteArray data)
             getMsg_getMsgs(data_str);
         }
         break;
+    case msg_type_chat:
+        if(j["code"] == 0) {
+            getMsg_getChatMsg(data_str);
+        }
+        break;
     default:
         break;
     }
@@ -91,6 +99,33 @@ void Widget::processReceivedData(QByteArray data)
 void Widget::on_loginButton_clicked()
 {
     sendMsg_userLogin();
+}
+
+void Widget::on_plainTextEdit_ReturnPressed()
+{
+    // 获取文本框的内容
+    QString text = ui->plainTextEdit->toPlainText();
+
+    // 检查最后一个字符是否为回车键
+    if (!text.isEmpty() && text.right(1) == "\n") {
+        qDebug() << "Return pressed! Text entered:" << text.trimmed();
+        // 在这里执行您想要的操作，比如处理输入的文本
+        using json = nlohmann::json;
+
+        json j;
+
+        j["senderid"] = m_userId;
+        j["senderusername"] = m_username;
+        j["msgcontent"] = text.toStdString();
+        j["sendtime_str"] = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss").toStdString();
+
+        std::string data = PackageProcessor::getSendPackageData(msg_type_chat, 0, j.dump());
+        qDebug() << "Widget::on_plainTextEdit_ReturnPressed() sendData : " << QString::fromStdString(data);
+        Singleton<TcpClient>::Instance().sendData(QByteArray(data.c_str(), data.length()));
+
+        // 清空文本框
+        ui->plainTextEdit->clear();
+    }
 }
 
 void Widget::sendMsg_userLogin()
@@ -113,6 +148,7 @@ void Widget::getMsg_userLogin(std::string data)
 
     json msg = json::parse(data);
     m_userId = msg["userid"];
+    m_username = msg["username"];
     qDebug() << "Widget::processReceivedData() 登陆成功 " << "userid : " << m_userId << " username : " << QString::fromStdString(msg["username"]);
 }
 
@@ -172,5 +208,25 @@ void Widget::getMsg_getMsgs(std::string data)
         }else{
             chatWindow_ptr->addMessage(msgcontent_qstr, nameAtime, false);
         }
+    }
+}
+
+void Widget::getMsg_getChatMsg(std::string data)
+{
+    using json = nlohmann::json;
+
+    json msg = json::parse(data)["msg"];
+    int senderid = msg["senderid"];
+    std::string senderusername = msg["senderusername"];
+    std::string msgcontent = msg["msgcontent"];
+    std::string sendtime_str = msg["sendtime_str"];
+
+    QString nameAtime = QString("%1 %2").arg(QString::fromStdString(senderusername)).arg(QString::fromStdString(sendtime_str));
+    QString msgcontent_qstr = QString::fromStdString(msgcontent);
+
+    if(senderid == m_userId) {
+        chatWindow_ptr->addMessage(msgcontent_qstr, nameAtime, true);
+    }else{
+        chatWindow_ptr->addMessage(msgcontent_qstr, nameAtime, false);
     }
 }
